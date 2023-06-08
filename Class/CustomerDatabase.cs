@@ -4,18 +4,22 @@ class CustomerDatabase<T>
 where T : ICustomer
 {
     private List<T> _customerCollection;
+    private Stack<T[]> _undoStack;
+    private Stack<T[]> _redoStack;
+    private const string FilePath = "customers.csv";
 
     public CustomerDatabase()
     {
         _customerCollection = new List<T>();
+        _undoStack = new Stack<T[]>();
+        _redoStack = new Stack<T[]>();
     }
 
-    public T Insert(T customer)
+    public void Insert(T customer)
     {
-        bool isEmailUnique = !_customerCollection.Any(customer => customer.Email == customer.Email);
         var id = 0;
 
-        if (isEmailUnique)
+        if (!_customerCollection.Any(customer => customer.Email == customer.Email))
         {
             if (_customerCollection.Count > 0)
             {
@@ -24,11 +28,10 @@ where T : ICustomer
             customer.Id = id;
             _customerCollection.Add(customer);
             Console.WriteLine("Customer is added successfully!");
-            return customer;
         }
         else
         {
-            throw new Exception("The customer's email already exists");
+            ExceptionHandler.HandleException("Email must be unique.");
         }
     }
 
@@ -43,7 +46,7 @@ where T : ICustomer
         }
         else
         {
-            Console.WriteLine("Customer has been deleted already!");
+            ExceptionHandler.HandleException("The customer has already removed!");
             return false;
         }
     }
