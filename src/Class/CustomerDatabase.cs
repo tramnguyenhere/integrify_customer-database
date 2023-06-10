@@ -16,22 +16,28 @@ where T : ICustomer
         _redoStack = new Stack<T>();
     }
 
+
     public void Insert(T customer)
     {
-        var id = _customerCollection.Count > 0 ? _customerCollection[^1].Id + 1 : 0;
+        var lines = File.ReadAllLines("customers.csv");
+        var inputEmail = customer.Email;
 
-        if (!_customerCollection.Any(customer => customer.Email == customer.Email))
-        {
-            customer.Id = id;
-            _customerCollection.Add(customer);
-            Console.WriteLine("Customer is added successfully!");
-            ClearRedoStack();
-
-        }
-        else
+        bool emailExists = lines.Any(line => line.Split(',')[3] == inputEmail);
+        if (emailExists)
         {
             ExceptionHandler.HandleException(new Exception("Email must be unique."));
+            return;
         }
+
+        int newId = lines.Length > 0 ? lines.Length : 0;
+        customer.Id = newId;
+
+        string newLine = $"{newId},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
+
+        var newLines = lines.ToList();
+        newLines.Add(newLine);
+
+        File.WriteAllLines("customers.csv", newLines);
     }
 
     public bool Delete(int id)
@@ -84,11 +90,6 @@ where T : ICustomer
             result += customer.ToString();
         }
         return result;
-    }
-
-    private void ClearRedoStack()
-    {
-        _redoStack.Clear();
     }
 
     public IEnumerator<T> GetEnumerator()
