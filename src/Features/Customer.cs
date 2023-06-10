@@ -16,8 +16,9 @@ class Customer : ICustomer
     public string Email { get; set; }
     public string Address { get; set; }
 
-    public Customer(string firstName, string lastName, string email, string address)
+    public Customer(int id, string firstName, string lastName, string email, string address)
     {
+        Id = id;
         FirstName = firstName;
         LastName = lastName;
         Email = email;

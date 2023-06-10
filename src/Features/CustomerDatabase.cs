@@ -1,143 +1,176 @@
-using System.Collections;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace DatabaseManagement;
 
-class CustomerDatabase<T> : IEnumerable<T>
-where T : ICustomer
+class CustomerDatabase
 {
-    private List<T> _customerCollection;
-    private Stack<List<T>> _undoStack;
-    private Stack<List<T>> _redoStack;
+    private List<ICustomer> _customerCollection;
+    private Stack<List<ICustomer>> _undoStack;
+    private Stack<List<ICustomer>> _redoStack;
+    private const string FilePath = "customers.csv";
 
     public CustomerDatabase()
     {
-        _customerCollection = new List<T>();
-        _undoStack = new Stack<List<T>>();
-        _redoStack = new Stack<List<T>>();
-    }
+        _customerCollection = new List<ICustomer>();
+        _undoStack = new Stack<List<ICustomer>>();
+        _redoStack = new Stack<List<ICustomer>>();
 
-    public async Task Insert(T customer)
+        LoadCustomersFromFile();
+    }
+    public void AddCustomer(Customer customer)
     {
-        var lines = File.ReadAllLines("customers.csv");
-        int id = 0;
-        if (File.Exists("customers.csv"))
+        if (_customerCollection.Any(c => c.Email == customer.Email))
         {
-            if (lines.Length > 0)
-            {
-                var lastLine = lines[^1];
-                var lastId = int.Parse(lastLine.Split(',')[0]);
-                id = lastId + 1;
-            }
+            ExceptionHandler.FileException("Customer with the same email already exists.");
         }
 
-        foreach (string line in lines)
+        int newId = GenerateNewId();
+        customer.Id = newId;
+
+        _customerCollection.Add(customer);
+        _undoStack.Push(new List<ICustomer>(_customerCollection));
+        _redoStack.Clear();
+
+        SaveCustomersToFile();
+    }
+
+    public void UpdateCustomer(int customerId, ICustomer updatedCustomer)
+    {
+        var existingCustomer = _customerCollection.FirstOrDefault(c => c.Id == customerId);
+        if (existingCustomer == null)
         {
-            if (line.Contains(customer.Email))
+            ExceptionHandler.FileException("Customer not found.");
+        }
+        else
+        {
+            if (existingCustomer?.Email != updatedCustomer.Email &&
+                _customerCollection.Any(c => c.Email == updatedCustomer.Email))
             {
-                ExceptionHandler.FileException("Email must be unique.");
+                ExceptionHandler.FileException("Another customer with the same email already exists.");
             }
             else
             {
-                customer.Id = id;
-                _customerCollection.Add(customer);
-                Console.WriteLine("Customer is added successfully!");
-                await AddNewCustomer($"{id}, {customer.FirstName}, {customer.LastName}, {customer.Email}, {customer.Address}");
-                ClearRedoStack();
-                _undoStack.Push(new List<T>(_customerCollection));
+                existingCustomer!.FirstName = updatedCustomer.FirstName;
+                existingCustomer.LastName = updatedCustomer.LastName;
+                existingCustomer.Email = updatedCustomer.Email;
+                existingCustomer.Address = updatedCustomer.Address;
+
+                _undoStack.Push(new List<ICustomer>(_customerCollection));
+                _redoStack.Clear();
+
+                SaveCustomersToFile();
+            }
+
+        }
+
+    }
+
+    public void DeleteCustomer(int customerId)
+    {
+        var existingCustomer = _customerCollection.FirstOrDefault(c => c.Id == customerId);
+        if (existingCustomer == null)
+        {
+            ExceptionHandler.FileException("Customer not found.");
+        }
+        else
+        {
+            _customerCollection.Remove(existingCustomer);
+            _undoStack.Push(new List<ICustomer>(_customerCollection));
+            _redoStack.Clear();
+
+            SaveCustomersToFile();
+        }
+
+    }
+
+    public ICustomer GetCustomerById(int customerId)
+    {
+        return _customerCollection?.FirstOrDefault(c => c.Id == customerId);
+    }
+
+    public IEnumerable<ICustomer> SearchCustomersById(int customerId)
+    {
+        return _customerCollection.Where(c => c.Id == customerId);
+    }
+
+    public void Undo()
+    {
+        if (_undoStack.Count == 0)
+        {
+            throw new InvalidOperationException("Nothing to undo.");
+        }
+
+        var previousState = _undoStack.Pop();
+        _redoStack.Push(new List<ICustomer>(_customerCollection));
+        _customerCollection = previousState;
+
+        SaveCustomersToFile();
+    }
+
+    public void Redo()
+    {
+        if (_redoStack.Count == 0)
+        {
+            throw new InvalidOperationException("Nothing to redo.");
+        }
+
+        var nextState = _redoStack.Pop();
+        _undoStack.Push(new List<ICustomer>(_customerCollection));
+        _customerCollection = nextState;
+
+        SaveCustomersToFile();
+    }
+
+    private void LoadCustomersFromFile()
+    {
+        if (File.Exists(FilePath))
+        {
+            try
+            {
+                var lines = File.ReadAllLines(FilePath);
+                foreach (var line in lines)
+                {
+                    var customerData = line.Split(',');
+                    if (customerData.Length == 5)
+                    {
+                        var customer = new Customer(Convert.ToInt32(customerData[0]), customerData[1], customerData[2], customerData[3], customerData[4]);
+                        _customerCollection.Add(customer);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                ExceptionHandler.FetchDataException(exception.Message);
             }
         }
-        // foreach (string line in lines)
-        // {
-        //     if (line.Contains(customer.Email))
-        //     {
-        //         ExceptionHandler.FileException("Email must be unique.");
-        //     }
-        //     else
-        //     {
-        //         customer.Id = id;
-        //         _customerCollection.Add(customer);
-        //         Console.WriteLine("Customer is added successfully!");
-        //         await AddNewCustomer($"{id}, {customer.FirstName}, {customer.LastName}, {customer.Email}, {customer.Address}");
-        //         ClearRedoStack();
-        //         _undoStack.Push(new List<T>(_customerCollection));
-        //     }
-        // }
     }
 
-    public static async Task AddNewCustomer(string newCustomer)
+    private void SaveCustomersToFile()
     {
-        var fh = new FileHelper("customers.csv");
-        fh.GetAll();
-        await fh.AddNewAsync(newCustomer);
-    }
-
-    public bool Delete(int id)
-    {
-        var customer = _customerCollection.Find(customer => customer.Id == id);
-        if (customer != null)
+        try
         {
-            _customerCollection.Remove(customer);
-            Console.WriteLine("Customer is removed successfully!");
-            return true;
+            using (var writer = new StreamWriter(FilePath))
+            {
+                foreach (var customer in _customerCollection)
+                {
+                    var line = $"{customer.Id},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
+                    writer.WriteLine(line);
+                }
+            }
         }
-        else
+        catch (Exception exception)
         {
-            ExceptionHandler.FileException("The customer has already removed!");
-            return false;
+            ExceptionHandler.UpdateDataException(exception.Message);
         }
     }
 
-    public T GetCustomerById(int id)
+    private int GenerateNewId()
     {
-        var customer = _customerCollection.FirstOrDefault(customer => customer.Id == id);
-        if (customer != null)
-        {
-            return customer;
-        }
-        else
-        {
-            throw new Exception("The customer cannot be found!");
-        }
-    }
-
-    public T SearchCustomersById(int id)
-    {
-        var searchResults = _customerCollection.Find(customer => customer.Id == id);
-        if (searchResults != null)
-        {
-            return searchResults;
-        }
-        else
-        {
-            throw new Exception("The customer cannot be found!");
-        }
-    }
-
-    public override string ToString()
-    {
-        var result = "";
-        foreach (T customer in _customerCollection)
-        {
-            result += customer.ToString();
-        }
-        return result;
-    }
-
-    private void ClearRedoStack()
-    {
-        _redoStack.Clear();
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        foreach (T customer in _customerCollection)
-        {
-            yield return customer;
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
+        var id = _customerCollection.Count > 0 ? _customerCollection[^1].Id + 1 : 0;
+        return id;
     }
 }
+
