@@ -5,12 +5,12 @@ class CustomerDatabase<T> : IEnumerable<T>
 where T : ICustomer
 {
     private List<T> _customerCollection;
-    private string[] _lines;
+    private List<string> _lines;
 
     public CustomerDatabase()
     {
         _customerCollection = new List<T>();
-        _lines = File.ReadAllLines("customers.csv");
+        _lines = File.ReadAllLines("customers.csv").ToList();
     }
 
     public void Insert(T customer)
@@ -23,15 +23,14 @@ where T : ICustomer
             return;
         }
 
-        int newId = _lines.Length > 0 ? Convert.ToInt32(_lines.Last().Split(',')[0]) + 1 : 0;
+        int newId = _lines.Count > 0 ? int.Parse(_lines.Last().Split(',')[0]) + 1 : 0;
         customer.Id = newId;
         _customerCollection.Add(customer);
 
         string newLine = $"{newId},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
 
-        var newLines = _lines.ToList();
-        newLines.Add(newLine);
-        FileHelper.SaveCustomerToFile(newLines);
+        _lines.Add(newLine);
+        FileHelper.SaveCustomerToFile(_lines);
     }
 
     public void Update(int customerId, T updatedCustomer)
@@ -46,7 +45,7 @@ where T : ICustomer
         }
 
         int lineIndex = -1;
-        for (int i = 0; i < _lines.Length; i++)
+        for (int i = 0; i < _lines.Count; i++)
         {
             var parts = _lines[i].Split(',');
             if (parts.Length == 5 && int.Parse(parts[0]) == customerId)
@@ -70,7 +69,7 @@ where T : ICustomer
                     customer.Address = updatedCustomer.Address;
                 }
             }
-            FileHelper.SaveCustomerToFile(_lines.ToList());
+            FileHelper.SaveCustomerToFile(_lines);
         }
         else
         {
@@ -82,7 +81,7 @@ where T : ICustomer
     public void Delete(int customerId)
     {
         int lineIndex = -1;
-        for (int i = 0; i < _lines.Length; i++)
+        for (int i = 0; i < _lines.Count; i++)
         {
             var parts = _lines[i].Split(',');
             if (int.Parse(parts[0]) == customerId)
@@ -92,12 +91,10 @@ where T : ICustomer
             }
         }
 
-
         if (lineIndex != -1)
         {
-            var newLines = _lines.ToList();
-            newLines.RemoveAt(lineIndex);
-            FileHelper.SaveCustomerToFile(newLines);
+            _lines.RemoveAt(lineIndex);
+            FileHelper.SaveCustomerToFile(_lines);
         }
         else
         {

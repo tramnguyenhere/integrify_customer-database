@@ -7,7 +7,7 @@ var customer3 = new Customer("Hung", "Tran", "hung@mail.com", "Olympiakatu 12 C1
 
 // customerDatabase.Insert(customer1);
 // customerDatabase.Insert(customer2);
-// customerDatabase.Insert(customer3);
+customerDatabase.Insert(customer1);
 // customerDatabase.Update(0, new Customer("Tram", "Nguyen", "tramle@mail.com", "Strombergintie"));
 // customerDatabase.Delete(0);
 customerDatabase.GetCustomerById(1);
