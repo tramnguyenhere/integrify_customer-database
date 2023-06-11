@@ -14,16 +14,16 @@ public class ExceptionHandler : Exception
         _message = message;
         _errorCode = errorCode;
     }
-    public static ExceptionHandler FileException(string? message)
+    public static void FileException(string? message)
     {
-        return new ExceptionHandler(message ?? "There is error happened when processing the file", 500);
+        Console.WriteLine(message ?? "There is error happened when processing the file", 500);
     }
-    public static ExceptionHandler FetchDataException(string? message)
+    public static void FetchDataException(string? message)
     {
-        return new ExceptionHandler(message ?? "Cannot read data from the file", 500);
+        Console.WriteLine(message ?? "Cannot read data from the file", 500);
     }
-    public static ExceptionHandler UpdateDataException(string? message)
+    public static void UpdateDataException(string? message)
     {
-        return new ExceptionHandler(message ?? "Cannot update data in the file", 500);
+        Console.WriteLine(message ?? "Cannot update data in the file", 500);
     }
 }

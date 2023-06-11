@@ -1,5 +1,5 @@
 namespace DatabaseManagement;
-
+using System.Collections;
 class FileHelper
 {
     private const string FilePath = "customers.csv";
@@ -11,34 +11,17 @@ class FileHelper
         }
     }
 
-    // public static CustomerDatabase<ICustomer> ReadCustomersFromFile()
-    // {
-    //     var customerCollection = new CustomerDatabase<ICustomer>();
+    public static void SaveCustomerToFile(List<string> lines)
+    {
+        File.WriteAllLines(FilePath, lines);
+    }
 
-    //     try
-    //     {
-    //         string[] lines = File.ReadAllLines(FilePath);
-    //         foreach (string line in lines)
-    //         {
-    //             // Console.WriteLine(line);
-    //             string[] parts = line.Split(',');
-    //             var customer = new Customer(parts[1], parts[2], parts[3], parts[4]);
-    //             customerCollection.Insert(customer);
-    //         }
-    //     }
-    //     catch (Exception exception)
-    //     {
-    //         ExceptionHandler.HandleException(new Exception($"Error while reading customer file: {exception}"));
-    //     }
-    //     return customerCollection;
-    // }
-
-    public static void WriteCustomersToFile(CustomerDatabase<ICustomer> customerCollection)
+    public static void WriteCustomersToFile(List<ICustomer> customerCollection)
     {
         try
         {
             List<string> lines = new List<string>();
-            foreach (ICustomer customer in customerCollection)
+            foreach (var customer in customerCollection)
             {
                 string line = $"{customer.Id},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
                 lines.Add(line);

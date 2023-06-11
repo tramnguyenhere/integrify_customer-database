@@ -5,55 +5,50 @@ class CustomerDatabase<T> : IEnumerable<T>
 where T : ICustomer
 {
     private List<T> _customerCollection;
-    private Stack<T> _undoStack;
-    private Stack<T> _redoStack;
+    private string[] _lines;
 
     public CustomerDatabase()
     {
         _customerCollection = new List<T>();
-        _undoStack = new Stack<T>();
-        _redoStack = new Stack<T>();
+        _lines = File.ReadAllLines("customers.csv");
     }
 
     public void Insert(T customer)
     {
         var inputEmail = customer.Email;
-        var lines = File.ReadAllLines("customers.csv");
-        bool emailExists = lines.Any(line => line.Split(',')[3] == inputEmail);
+        bool emailExists = _lines.Any(line => line.Split(',')[3] == inputEmail);
         if (emailExists)
         {
-            Console.WriteLine("hui");
             ExceptionHandler.UpdateDataException("Email must be unique.");
             return;
         }
 
-        int newId = lines.Length > 0 ? Convert.ToInt32(lines.Last().Split(',')[0]) + 1 : 0;
+        int newId = _lines.Length > 0 ? Convert.ToInt32(_lines.Last().Split(',')[0]) + 1 : 0;
         customer.Id = newId;
+        _customerCollection.Add(customer);
 
         string newLine = $"{newId},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
 
-        var newLines = lines.ToList();
+        var newLines = _lines.ToList();
         newLines.Add(newLine);
-
-        File.WriteAllLines("customers.csv", newLines);
+        FileHelper.SaveCustomerToFile(newLines);
     }
 
     public void Update(int customerId, T updatedCustomer)
     {
         var inputEmail = updatedCustomer.Email;
-        var lines = File.ReadAllLines("customers.csv");
-        // bool emailExists = lines.Any(line => line.Split(',')[3] == inputEmail);
+        bool emailExists = _lines.Any(line => line.Split(',')[3] == inputEmail && Convert.ToInt32(line.Split(',')[0]) != customerId);
 
-        // if (emailExists)
-        // {
-        //     ExceptionHandler.UpdateDataException("Email must be unique.");
-        //     return;
-        // }
+        if (emailExists)
+        {
+            ExceptionHandler.UpdateDataException("Email must be unique.");
+            return;
+        }
 
         int lineIndex = -1;
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < _lines.Length; i++)
         {
-            var parts = lines[i].Split(',');
+            var parts = _lines[i].Split(',');
             if (parts.Length == 5 && int.Parse(parts[0]) == customerId)
             {
                 lineIndex = i;
@@ -63,38 +58,62 @@ where T : ICustomer
 
         if (lineIndex != -1)
         {
-            lines[lineIndex] = $"{customerId},{updatedCustomer.FirstName},{updatedCustomer.LastName},{updatedCustomer.Email},{updatedCustomer.Address}";
+            _lines[lineIndex] = $"{customerId},{updatedCustomer.FirstName},{updatedCustomer.LastName},{updatedCustomer.Email},{updatedCustomer.Address}";
 
-            File.WriteAllLines("customers.csv", lines);
+            foreach (var customer in _customerCollection)
+            {
+                if (customer.Id == customerId)
+                {
+                    customer.FirstName = updatedCustomer.FirstName;
+                    customer.LastName = updatedCustomer.LastName;
+                    customer.Email = updatedCustomer.Email;
+                    customer.Address = updatedCustomer.Address;
+                }
+            }
+            FileHelper.SaveCustomerToFile(_lines.ToList());
         }
         else
         {
             ExceptionHandler.UpdateDataException("Customer not found.");
+            return;
         }
     }
 
-    public bool Delete(int customerId)
+    public void Delete(int customerId)
     {
-        var customer = _customerCollection.Find(customer => customer.Id == customerId);
-        if (customer != null)
+        int lineIndex = -1;
+        for (int i = 0; i < _lines.Length; i++)
         {
-            _customerCollection.Remove(customer);
-            Console.WriteLine("Customer is removed successfully!");
-            return true;
+            var parts = _lines[i].Split(',');
+            if (int.Parse(parts[0]) == customerId)
+            {
+                lineIndex = i;
+                break;
+            }
+        }
+
+
+        if (lineIndex != -1)
+        {
+            var newLines = _lines.ToList();
+            newLines.RemoveAt(lineIndex);
+            FileHelper.SaveCustomerToFile(newLines);
         }
         else
         {
-            ExceptionHandler.UpdateDataException("The customer has already removed!");
-            return false;
+            ExceptionHandler.UpdateDataException("Customer not found.");
+            return;
         }
     }
 
-    public T GetCustomerById(int id)
+
+    public string GetCustomerById(int id)
     {
-        var customer = _customerCollection.FirstOrDefault(customer => customer.Id == id);
-        if (customer != null)
+        var searchResult = _lines.First(line => Convert.ToInt32(line.Split(",")[0]) == id);
+        if (searchResult != null)
         {
-            return customer;
+            Console.WriteLine(searchResult);
+            return searchResult;
         }
         else
         {
@@ -102,18 +121,6 @@ where T : ICustomer
         }
     }
 
-    public T SearchCustomersById(int id)
-    {
-        var searchResults = _customerCollection.Find(customer => customer.Id == id);
-        if (searchResults != null)
-        {
-            return searchResults;
-        }
-        else
-        {
-            throw new Exception("The customer cannot be found!");
-        }
-    }
 
     public override string ToString()
     {
