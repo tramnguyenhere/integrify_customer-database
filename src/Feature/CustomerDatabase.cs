@@ -1,59 +1,41 @@
 namespace DatabaseManagement;
 using System.Collections;
 
-class CustomerDatabase<T> : IEnumerable<T>
-where T : ICustomer
+class CustomerDatabase<Customer>
 {
-    private List<T> _customerCollection;
+    private List<ICustomer> _customerCollection;
     private List<string> _lines;
 
     public CustomerDatabase()
     {
-        _customerCollection = new List<T>();
+        _customerCollection = new List<ICustomer>();
         _lines = File.ReadAllLines("customers.csv").ToList();
     }
 
-    public void Insert(T customer)
+    public void Insert(ICustomer customer)
     {
-        var inputEmail = customer.Email;
-        bool emailExists = _lines.Any(line => line.Split(',')[3] == inputEmail);
-        if (emailExists)
+        customer.Id = Utils.GenerateId(_lines);
+        if (Utils.IsEmailAvailable(_lines, customer.Email))
         {
-            ExceptionHandler.UpdateDataException("Email must be unique.");
+            ExceptionHandler.UpdateDataException("Error! Email must be unique.");
             return;
         }
 
-        int newId = _lines.Count > 0 ? int.Parse(_lines.Last().Split(',')[0]) + 1 : 0;
-        customer.Id = newId;
         _customerCollection.Add(customer);
 
-        string newLine = $"{newId},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
-
-        _lines.Add(newLine);
+        _lines.Add(customer?.ToString() ?? string.Empty);
         FileHelper.SaveCustomerToFile(_lines);
     }
 
-    public void Update(int customerId, T updatedCustomer)
+    public void Update(int customerId, ICustomer updatedCustomer)
     {
-        var inputEmail = updatedCustomer.Email;
-        bool emailExists = _lines.Any(line => line.Split(',')[3] == inputEmail && Convert.ToInt32(line.Split(',')[0]) != customerId);
-
-        if (emailExists)
+        if (Utils.IsEmailAvailable(_lines, updatedCustomer.Email, customerId))
         {
-            ExceptionHandler.UpdateDataException("Email must be unique.");
+            ExceptionHandler.UpdateDataException("Error! Email must be unique.");
             return;
         }
 
-        int lineIndex = -1;
-        for (int i = 0; i < _lines.Count; i++)
-        {
-            var parts = _lines[i].Split(',');
-            if (parts.Length == 5 && int.Parse(parts[0]) == customerId)
-            {
-                lineIndex = i;
-                break;
-            }
-        }
+        int lineIndex = Utils.FindLineIndex(_lines, customerId);
 
         if (lineIndex != -1)
         {
@@ -80,16 +62,7 @@ where T : ICustomer
 
     public void Delete(int customerId)
     {
-        int lineIndex = -1;
-        for (int i = 0; i < _lines.Count; i++)
-        {
-            var parts = _lines[i].Split(',');
-            if (int.Parse(parts[0]) == customerId)
-            {
-                lineIndex = i;
-                break;
-            }
-        }
+        int lineIndex = Utils.FindLineIndex(_lines, customerId);
 
         if (lineIndex != -1)
         {
@@ -122,23 +95,10 @@ where T : ICustomer
     public override string ToString()
     {
         var result = "";
-        foreach (T customer in _customerCollection)
+        foreach (ICustomer customer in _customerCollection)
         {
             result += customer.ToString();
         }
         return result;
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        foreach (T customer in _customerCollection)
-        {
-            yield return customer;
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 }

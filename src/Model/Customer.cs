@@ -26,6 +26,6 @@ class Customer : ICustomer
 
     public override string ToString()
     {
-        return $"Customer Id: {Id}\nFullname: {FirstName} {LastName}\nEmail: {Email}\nAddress: {Address}";
+        return $"{Id},{FirstName},{LastName},{Email},{Address}";
     }
 }
