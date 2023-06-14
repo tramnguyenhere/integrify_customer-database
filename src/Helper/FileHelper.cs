@@ -11,27 +11,29 @@ class FileHelper
         }
     }
 
-    public static void SaveCustomerToFile(List<string> lines)
+    internal static void InsertToFile(Customer customer, List<string> lines)
     {
+        lines.Add(customer.ToString());
         File.WriteAllLines(FilePath, lines);
     }
 
-    public static void WriteCustomersToFile(List<Customer> customerCollection)
+    internal static void UpdateInFile(int customerId, Customer updatedCustomer, List<string> lines)
     {
-        try
+        int lineIndex = Utils.FindLineIndex(lines, customerId);
+        if (lineIndex != -1)
         {
-            List<string> lines = new List<string>();
-            foreach (var customer in customerCollection)
-            {
-                string line = $"{customer.Id},{customer.FirstName},{customer.LastName},{customer.Email},{customer.Address}";
-                lines.Add(line);
-            }
-
+            lines[lineIndex] = updatedCustomer.ToString();
             File.WriteAllLines(FilePath, lines);
         }
-        catch (Exception exception)
+    }
+
+    internal static void DeleteFromFile(int customerId, List<string> lines)
+    {
+        int lineIndex = Utils.FindLineIndex(lines, customerId);
+        if (lineIndex != -1)
         {
-            Console.WriteLine($"Error while writing customers to the file: {exception.Message}");
+            lines.RemoveAt(lineIndex);
+            File.WriteAllLines(FilePath, lines);
         }
     }
 }

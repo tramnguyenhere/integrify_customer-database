@@ -4,33 +4,43 @@ class CustomerDatabase
 {
     private List<Customer> _customerCollection;
     private List<string> _lines;
+    private Stack<Step> _undoStack;
+    private Stack<Step> _redoStack;
 
     public CustomerDatabase()
     {
         _customerCollection = new List<Customer>();
         _lines = File.ReadAllLines("customers.csv").ToList();
+        _undoStack = new Stack<Step>();
+        _redoStack = new Stack<Step>();
     }
 
     public void Insert(Customer customer)
     {
-        customer.Id = Utils.GenerateId(_lines);
+        int generatedId = Utils.GenerateId(_lines);
+        customer = new Customer(generatedId, customer.FirstName, customer.LastName, customer.Email, customer.Address);
+
+
         if (Utils.IsEmailAvailable(_lines, customer.Email))
         {
-            ExceptionHandler.UpdateDataException("Error! Email must be unique.");
+            Console.WriteLine("Error! Email must be unique.");
             return;
         }
 
         _customerCollection.Add(customer);
 
         _lines.Add(customer?.ToString() ?? string.Empty);
-        FileHelper.SaveCustomerToFile(_lines);
+        FileHelper.InsertToFile(customer, _lines);
+
+        _undoStack.Push(new Step(Action.Insert, customer));
+        _redoStack.Clear();
     }
 
     public void Update(int customerId, Customer updatedCustomer)
     {
         if (Utils.IsEmailAvailable(_lines, updatedCustomer.Email, customerId))
         {
-            ExceptionHandler.UpdateDataException("Error! Email must be unique.");
+            Console.WriteLine("Error! Email must be unique.");
             return;
         }
 
@@ -38,6 +48,8 @@ class CustomerDatabase
 
         if (lineIndex != -1)
         {
+            string originalData = _lines[lineIndex];
+
             _lines[lineIndex] = $"{customerId},{updatedCustomer.FirstName},{updatedCustomer.LastName},{updatedCustomer.Email},{updatedCustomer.Address}";
 
             foreach (var customer in _customerCollection)
@@ -50,12 +62,16 @@ class CustomerDatabase
                     customer.Address = updatedCustomer.Address;
                 }
             }
-            FileHelper.SaveCustomerToFile(_lines);
+
+            FileHelper.UpdateInFile(customerId, updatedCustomer, _lines);
+
+            Customer originalCustomer = new Customer(customerId, originalData.Split(',')[1], originalData.Split(',')[2], originalData.Split(',')[3], originalData.Split(',')[4]);
+            _undoStack.Push(new Step(Action.Update, originalCustomer));
+            _redoStack.Clear();
         }
         else
         {
-            ExceptionHandler.UpdateDataException("Customer not found.");
-            return;
+            Console.WriteLine("Customer not found.");
         }
     }
 
@@ -65,13 +81,19 @@ class CustomerDatabase
 
         if (lineIndex != -1)
         {
+            string deletedData = _lines[lineIndex];
+
             _lines.RemoveAt(lineIndex);
-            FileHelper.SaveCustomerToFile(_lines);
+
+            FileHelper.DeleteFromFile(customerId, _lines);
+
+            Customer deletedCustomer = new Customer(customerId, deletedData.Split(',')[1], deletedData.Split(',')[2], deletedData.Split(',')[3], deletedData.Split(',')[4]);
+            _undoStack.Push(new Step(Action.Delete, deletedCustomer));
+            _redoStack.Clear();
         }
         else
         {
-            ExceptionHandler.UpdateDataException("Customer not found.");
-            return;
+            Console.WriteLine("Customer not found.");
         }
     }
 
@@ -89,12 +111,69 @@ class CustomerDatabase
         }
     }
 
+    public void Undo()
+    {
+        if (_undoStack.Count > 0)
+        {
+            Step stepToUndo = _undoStack.Pop();
+            switch (stepToUndo.Action)
+            {
+                case Action.Insert:
+                    Delete(stepToUndo.Customer.Id);
+                    FileHelper.DeleteFromFile(stepToUndo.Customer.Id, _lines);
+                    break;
+                case Action.Update:
+                    Update(stepToUndo.Customer.Id, stepToUndo.Customer);
+                    FileHelper.UpdateInFile(stepToUndo.Customer.Id, stepToUndo.Customer, _lines);
+                    break;
+                case Action.Delete:
+                    Insert(stepToUndo.Customer);
+                    FileHelper.InsertToFile(stepToUndo.Customer, _lines);
+                    break;
+            }
+            _redoStack.Push(stepToUndo);
+        }
+        else
+        {
+            Console.WriteLine("Nothing to undo.");
+        }
+    }
+
+    public void Redo()
+    {
+        if (_redoStack.Count > 0)
+        {
+            Step stepToRedo = _redoStack.Pop();
+            switch (stepToRedo.Action)
+            {
+                case Action.Insert:
+                    Insert(stepToRedo.Customer);
+                    FileHelper.InsertToFile(stepToRedo.Customer, _lines);
+                    break;
+                case Action.Update:
+                    Update(stepToRedo.Customer.Id, stepToRedo.Customer);
+                    FileHelper.UpdateInFile(stepToRedo.Customer.Id, stepToRedo.Customer, _lines);
+                    break;
+                case Action.Delete:
+                    Delete(stepToRedo.Customer.Id);
+                    FileHelper.DeleteFromFile(stepToRedo.Customer.Id, _lines);
+                    break;
+            }
+            _undoStack.Push(stepToRedo);
+        }
+        else
+        {
+            Console.WriteLine("Nothing to redo.");
+        }
+    }
+
+
     public override string ToString()
     {
         var result = "";
         foreach (Customer customer in _customerCollection)
         {
-            result += customer.ToString();
+            result += customer.ToString() + Environment.NewLine;
         }
         return result;
     }

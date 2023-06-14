@@ -1,23 +1,35 @@
 ﻿using DatabaseManagement;
 
-var customerDatabase = new CustomerDatabase();
-var customer1 = new Customer("Tram", "Nguyen", "tram@mail.com", "Olympiakatu 12 C1");
-var customer2 = new Customer("Phuc", "Le", "phuc@mail.com", "Olympiakatu 12 C1");
-var customer3 = new Customer("Hung", "Tran", "hung@mail.com", "Olympiakatu 12 C1");
-var customer4 = new Customer("Mai", "Ngo", "mai@mail.com", "Olympiakatu 12 C1");
+class Program
+{
+    static void Main(string[] args)
+    {
+        CustomerDatabase customerDatabase = new CustomerDatabase();
 
-// customerDatabase.Insert(customer1);
-// customerDatabase.Insert(customer2);
-customerDatabase.Insert(customer3);
-// customerDatabase.Insert(customer4);
-// customerDatabase.Update(1, new Customer("Miu", "Nguyen", "hung@mail.com", "Strombergintie"));
-// customerDatabase.Delete(0);
-customerDatabase.GetCustomerById(1);
-// Console.WriteLine(customerDatabase);
+        Customer customer1 = new Customer(0, "John", "Doe", "john.doe@example.com", "123 Main St");
+        customerDatabase.Insert(customer1);
+        Console.WriteLine("After insert operation:");
+        Console.WriteLine(customerDatabase);
 
-// var data = File.ReadAllLines("customers.csv");
-// FileHelper.ReadCustomersFromFile();
-// foreach (var line in data)
-// {
-//     Console.WriteLine(line);
-// }
+        // Update the customer
+        Customer updatedCustomer1 = new Customer(0, "John", "Smith", "john.smith@example.com", "456 Main St");
+        customerDatabase.Update(0, updatedCustomer1);
+        Console.WriteLine("After update operation:");
+        Console.WriteLine(customerDatabase);
+
+        // Delete the customer
+        customerDatabase.Delete(0);
+        Console.WriteLine("After delete operation:");
+        Console.WriteLine(customerDatabase);
+
+        // Perform undo operation
+        customerDatabase.Undo();
+        Console.WriteLine("After undo operation:");
+        Console.WriteLine(customerDatabase);
+
+        // // // Perform redo operation
+        // customerDatabase.Redo();
+        // Console.WriteLine("After redo operation:");
+        // Console.WriteLine(customerDatabase);
+    }
+}
