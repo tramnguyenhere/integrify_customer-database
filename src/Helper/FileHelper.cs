@@ -1,8 +1,8 @@
 namespace DatabaseManagement;
-using System.Collections;
 class FileHelper
 {
     private const string FilePath = "customers.csv";
+
     public static void CreateCustomerFile()
     {
         if (!File.Exists(FilePath))

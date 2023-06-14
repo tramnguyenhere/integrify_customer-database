@@ -33,7 +33,6 @@ class Utils
         {
             newId = 0;
         }
-
         return newId;
     }
 
