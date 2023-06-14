@@ -1,18 +1,17 @@
 namespace DatabaseManagement;
-using System.Collections;
 
-class CustomerDatabase<Customer>
+class CustomerDatabase
 {
-    private List<ICustomer> _customerCollection;
+    private List<Customer> _customerCollection;
     private List<string> _lines;
 
     public CustomerDatabase()
     {
-        _customerCollection = new List<ICustomer>();
+        _customerCollection = new List<Customer>();
         _lines = File.ReadAllLines("customers.csv").ToList();
     }
 
-    public void Insert(ICustomer customer)
+    public void Insert(Customer customer)
     {
         customer.Id = Utils.GenerateId(_lines);
         if (Utils.IsEmailAvailable(_lines, customer.Email))
@@ -27,7 +26,7 @@ class CustomerDatabase<Customer>
         FileHelper.SaveCustomerToFile(_lines);
     }
 
-    public void Update(int customerId, ICustomer updatedCustomer)
+    public void Update(int customerId, Customer updatedCustomer)
     {
         if (Utils.IsEmailAvailable(_lines, updatedCustomer.Email, customerId))
         {
@@ -76,7 +75,6 @@ class CustomerDatabase<Customer>
         }
     }
 
-
     public string GetCustomerById(int id)
     {
         var searchResult = _lines.First(line => Convert.ToInt32(line.Split(",")[0]) == id);
@@ -91,11 +89,10 @@ class CustomerDatabase<Customer>
         }
     }
 
-
     public override string ToString()
     {
         var result = "";
-        foreach (ICustomer customer in _customerCollection)
+        foreach (Customer customer in _customerCollection)
         {
             result += customer.ToString();
         }

@@ -16,7 +16,7 @@ class FileHelper
         File.WriteAllLines(FilePath, lines);
     }
 
-    public static void WriteCustomersToFile(List<ICustomer> customerCollection)
+    public static void WriteCustomersToFile(List<Customer> customerCollection)
     {
         try
         {
