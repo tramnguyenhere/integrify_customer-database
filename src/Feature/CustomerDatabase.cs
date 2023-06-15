@@ -49,8 +49,6 @@ class CustomerDatabase
         {
             string originalData = _lines[lineIndex];
 
-            _lines[lineIndex] = $"{customerId},{updatedCustomer.FirstName},{updatedCustomer.LastName},{updatedCustomer.Email},{updatedCustomer.Address}";
-
             foreach (var customer in _customerCollection)
             {
                 if (customer.Id == customerId)
@@ -164,16 +162,5 @@ class CustomerDatabase
         {
             Console.WriteLine("Nothing to redo.");
         }
-    }
-
-
-    public override string ToString()
-    {
-        var result = "";
-        foreach (Customer customer in _customerCollection)
-        {
-            result += customer.ToString() + Environment.NewLine;
-        }
-        return result;
     }
 }

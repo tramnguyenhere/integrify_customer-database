@@ -36,4 +36,12 @@ class FileHelper
             File.WriteAllLines(FilePath, lines);
         }
     }
+
+    public static void PrintCustomerFile()
+    {
+        foreach (string line in File.ReadLines("customers.csv"))
+        {
+            Console.WriteLine(line);
+        }
+    }
 }
