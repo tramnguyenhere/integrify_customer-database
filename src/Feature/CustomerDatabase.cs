@@ -29,7 +29,6 @@ class CustomerDatabase
 
         _customerCollection.Add(customer);
 
-        _lines.Add(customer?.ToString() ?? string.Empty);
         FileHelper.InsertToFile(customer, _lines);
 
         _undoStack.Push(new Step(Action.Insert, customer));
