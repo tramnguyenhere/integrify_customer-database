@@ -13,6 +13,10 @@ public class ExceptionHandler : Exception
         _errorCode = errorCode;
     }
 
+    public static void InputException(string? message)
+    {
+        Console.WriteLine(message ?? "There is error happened when inputing the value", 400);
+    }
     public static void FileException(string? message)
     {
         Console.WriteLine(message ?? "There is error happened when processing the file", 500);

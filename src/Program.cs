@@ -8,6 +8,8 @@ class Program
 
         Customer customer1 = new Customer(0, "John", "Doe", "john.doe@example.com", "123 Main St");
         Customer customer2 = new Customer(1, "Tram", "Nguyen", "tram.nguyen@example.com", "123 Main St");
+
+        // Insert the customers
         customerDatabase.Insert(customer1);
         Console.WriteLine("After insert operation:");
         FileHelper.PrintCustomerFile();
@@ -22,7 +24,7 @@ class Program
         Console.WriteLine("After update operation:");
         FileHelper.PrintCustomerFile();
 
-        // // Delete the customer
+        // Delete the customer
         customerDatabase.Delete(0);
         Console.WriteLine("After delete operation:");
         FileHelper.PrintCustomerFile();
@@ -32,7 +34,7 @@ class Program
         Console.WriteLine("After undo operation:");
         FileHelper.PrintCustomerFile();
 
-        // // Perform redo operation
+        // Perform redo operation
         customerDatabase.Redo();
         Console.WriteLine("After redo operation:");
         FileHelper.PrintCustomerFile();
